@@ -1,6 +1,9 @@
 package checking
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestParsingStashEntries(T *testing.T) {
 	cases := []struct{
@@ -49,5 +52,30 @@ func TestParsingStashEntries(T *testing.T) {
 	}
 }
 
+// most of these are never happening in practice, but this helps me verify my parsing is working
+// how I expect it to work
 func TestParseStashEntriesWithErrors(T *testing.T) {
+	rawEntries := []string {
+		"an absolutely garbage stash entry",
+		"stash@{-999}: On test: a negative number in the stash number",
+		"stash@{nope}: On test: a non-number in the stash number",
+	}
+
+	for _, rawEntry := range rawEntries {
+		_, err := parseStashEntry(rawEntry)
+		if err == nil {
+			T.Errorf(
+				"Expected an error with this stash entry string, but was not given an error.\n" +
+					"Offending entry: \"%s\"",
+				rawEntry,
+			)
+		} else if errors.Is(err, stashParseError) {
+			T.Logf("Expected error: %s", err.Error())
+		} else {
+			T.Errorf(
+				"Expected an error matching 'stashParseError', but was given an unrelated error: %s",
+				err.Error(),
+			)
+		}
+	}
 }
