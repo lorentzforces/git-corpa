@@ -5,27 +5,31 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
 )
 
-func CheckChanges() CheckData {
+func CheckChanges() (CheckData, error) {
+	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return CheckData{}, err
+	}
+
 	checkData := CheckData{}
 	checkData.CurrentBranch = git.CurrentBranch()
 
 	stashEntries, err := parseStashEntries(git.StashEntries())
-	platform.AssertNoErr(err)
+	platform.FailOnErr(err)
 	checkData.StashEntries = stashEntries
 
-	fmt.Printf("parsed stash entries: %+v\n", stashEntries)
+	rawDiffLines := git.Diff()
+	diffFiles, err := parseDiff(rawDiffLines)
+	_, _ = diffFiles, err
 
-	// TODO: get stash items
-	// TODO: get the diff
-
-
-
-	return checkData
+	_ = repoRoot
+	return checkData, nil
 }
 
 func parseStashEntries(rawEntries []string) ([]StashEntry, error) {
@@ -40,16 +44,13 @@ func parseStashEntries(rawEntries []string) ([]StashEntry, error) {
 	return entries, nil
 }
 
-// format: "stash@{N}: [WIP on|On] branchName:" followed by stuff we don't care about
-// CAPTURE GROUPS (submatches)
-// number: 1
-// branch: 3
-const stashEntryPattern string = "^stash@\\{(?<number>\\d+)}:( WIP)? [Oo]n (?<branch>[^:]+):"
-var stashParseError error = fmt.Errorf("An error was encountered while parsing a stash entry string")
+var stashParseError = fmt.Errorf("An error was encountered while parsing a stash entry string")
 
+// format: "stash@{N}: [WIP on|On] branchName:" followed by stuff we don't care about
+// CAPTURE GROUPS (submatches) number: 1, branch: 3
+var stashEntryRegex = regexp.MustCompile(`^stash@\{(?<number>\d+)}:( WIP)? [Oo]n (?<branch>[^:]+):`)
 func parseStashEntry(rawEntry string) (StashEntry, error) {
-	stashRegex := regexp.MustCompile(stashEntryPattern)
-	matches := stashRegex.FindStringSubmatch(rawEntry)
+	matches := stashEntryRegex.FindStringSubmatch(rawEntry)
 	if matches == nil {
 		err := fmt.Errorf(
 			"Malformed input: output of 'git stash list' was unparseable: \"%s\"",
@@ -64,8 +65,78 @@ func parseStashEntry(rawEntry string) (StashEntry, error) {
 	return StashEntry{
 			Number: uint(number),
 			Branch: matches[3],
+			RawString: rawEntry,
 		},
 		nil
+}
+
+var diffParseError = fmt.Errorf("An error was encoutnered while parsing diff output")
+
+var resultFileRegex = regexp.MustCompile(`b/(\S+)\z`)
+func parseDiff(rawLines []string) ([]DiffFile, error) {
+
+	// header-header: starts with "diff --git"
+	// header lines: between a header-header and the first chunk
+	// chunk lines: start with @@
+
+
+
+
+
+	files := make([]DiffFile, 0)
+	fileName := ""
+	_ = fileName
+	lastHeaderHeader := 0
+	lastChunkHeader := 0
+
+	for i, rawLine := range rawLines {
+		isHeaderHeader := strings.HasPrefix(rawLine, "diff --git")
+		if isHeaderHeader {
+			matches := resultFileRegex.FindStringSubmatch(rawLine)
+			platform.Assert(
+				matches != nil,
+				fmt.Sprintf("Result file regex did not find a target file name on line %d", i),
+			)
+
+			targetFile := matches[1]
+			if targetFile == "/dev/null" {
+				// impossible for there to be added lines here
+				continue
+			}
+
+			lastHeaderHeader = i
+			fileName = targetFile
+		}
+		isChunkHeader := strings.HasPrefix(rawLine, "@@")
+		if isChunkHeader {
+			lastChunkHeader = i
+			continue
+		}
+		isHeaderLine := lastHeaderHeader < i && lastChunkHeader < lastHeaderHeader
+		if isHeaderLine {
+			continue
+		}
+
+		firstChar := fmt.Sprintf("%.1s", rawLine)
+		if firstChar == " " || firstChar == "-" {
+			continue
+		}
+		platform.Assert(
+			firstChar == "+",
+			fmt.Sprintf(
+				"Diff file content line did not start with one of [ -+], last file header: " +
+					"\"%s\" offending line is:\n%s",
+				fileName, rawLine,
+			),
+		)
+
+		// TODO: add file struct where necessary
+		// TODO: add line struct to files
+
+		// TODO: figure out where original file whitespace determination happens? putting it in here makes testing a pain
+
+	}
+	return files, nil
 }
 
 type CheckData struct {
@@ -95,4 +166,5 @@ const (
 type StashEntry struct {
 	Number uint
 	Branch string
+	RawString string
 }

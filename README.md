@@ -16,9 +16,13 @@ Lesser checks (will print output but return status code 0):
 - TODO: if this string appears anywhere in added lines
 - stash entries: if any entries in `git stash list` contain the current branch name, which may indicate that the user forgot some changes they had previously stashed
 
+## Run requirements
+
+- A `git` executable available somewhere on your system `PATH`.
+
 ## Building the project
 
-### Requirements:
+### Build requirements:
 
 - a Golang installation (built & tested on Go v1.22)
 - an internet connection to download dependencies (only necessary if dependencies have changed or this is the first build)

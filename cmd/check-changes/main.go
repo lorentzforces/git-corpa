@@ -18,9 +18,8 @@ func main() {
 		platform.FailOut("\"git\" executable not found on system PATH")
 	}
 
-	checkData := checking.CheckChanges()
-
-
+	checkData, err := checking.CheckChanges()
+	platform.FailOnErr(err)
 	fmt.Printf("checked data: %+v\n", checkData)
 
 

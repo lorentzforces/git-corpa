@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -12,23 +13,53 @@ func ExecExists() bool {
 	return err == nil
 }
 
+var RepoDoesNotExistError = fmt.Errorf("Not inside a git repository")
+func RepoRoot() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd.Env = []string{}
+
+	stdOut, err := cmd.Output()
+	exitErr, isType := err.(*exec.ExitError)
+
+	if isType {
+		stdErr := string(exitErr.Stderr[:])
+		isNoRepoError := strings.Contains(stdErr, "not a git repository")
+		if isNoRepoError {
+			return "", RepoDoesNotExistError
+		}
+		platform.FailOnErr(err)
+	}
+	platform.FailOnErr(err)
+
+	fullOutput := string(stdOut[:])
+	return strings.TrimRight(fullOutput, "\n\r"), nil
+}
+
+// The current branch name. If in detached head state, returns empty string.
 func CurrentBranch() string {
 	cmd := exec.Command("git", "branch", "--show-current")
 	stdOut, err := cmd.Output()
-	platform.AssertNoErr(err)
-
-	// TODO: if in detached head, this will be empty
-	// TODO: unsure if this output includes trailing newline? trim if it does
-	return string(stdOut[:])
+	platform.FailOnErr(err)
+	fullOutput := string(stdOut[:])
+	return strings.TrimRight(fullOutput, "\n\r")
 }
 
 func StashEntries() []string {
 	cmd := exec.Command("git", "stash", "list")
+	cmd.Env = []string{}
 	stdOut, err := cmd.Output()
-	platform.AssertNoErr(err)
+	platform.FailOnErr(err)
 
 	fullOutput := string(stdOut[:])
+	return strings.FieldsFunc(fullOutput, func(c rune) bool {return c == '\n' || c == '\r'})
+}
 
-	// TODO: unsure if this output includes trailing newline? trim if it does
+func Diff() []string {
+	cmd := exec.Command("git", "diff", "--no-color", "-p", "HEAD")
+	cmd.Env = []string{}
+	stdOut, err := cmd.Output()
+	platform.FailOnErr(err)
+
+	fullOutput := string(stdOut[:])
 	return strings.FieldsFunc(fullOutput, func(c rune) bool {return c == '\n' || c == '\r'})
 }

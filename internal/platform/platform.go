@@ -10,6 +10,13 @@ func FailOut(msg string) {
 	os.Exit(1)
 }
 
+func FailOnErr(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR: " + err.Error())
+		os.Exit(1)
+	}
+}
+
 func ErrMsg(msg string) string {
 	return "ERROR: " + msg
 }
