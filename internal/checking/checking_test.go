@@ -79,3 +79,38 @@ func TestParseStashEntriesWithErrors(T *testing.T) {
 		}
 	}
 }
+
+func TestAccreteIndentKind(T *testing.T) {
+	cases := []struct{
+		existing IndentKind
+		observed IndentKind
+		expected IndentKind
+	} {
+		{ IndentUnknown, IndentUnknown, IndentUnknown },
+		{ IndentUnknown, IndentSpace, IndentSpace },
+		{ IndentUnknown, IndentTab, IndentTab },
+		{ IndentUnknown, IndentMixedLine, IndentMixedLine },
+		{ IndentSpace, IndentUnknown, IndentSpace },
+		{ IndentSpace, IndentSpace, IndentSpace },
+		{ IndentSpace, IndentTab, IndentMixedLine },
+		{ IndentSpace, IndentMixedLine, IndentMixedLine },
+		{ IndentTab, IndentUnknown, IndentTab },
+		{ IndentTab, IndentSpace, IndentMixedLine },
+		{ IndentTab, IndentTab, IndentTab },
+		{ IndentTab, IndentMixedLine, IndentMixedLine },
+		{ IndentMixedLine, IndentUnknown, IndentMixedLine },
+		{ IndentMixedLine, IndentSpace, IndentMixedLine },
+		{ IndentMixedLine, IndentTab, IndentMixedLine },
+		{ IndentMixedLine, IndentMixedLine, IndentMixedLine },
+	}
+
+	for _, testCase := range cases {
+		result := accreteIndentKind(testCase.existing, testCase.observed)
+		if testCase.expected != result {
+			T.Errorf(
+				"accreteIndentKind(%s, %s) produced %s, but %s was expected",
+				testCase.existing, testCase.observed, result, testCase.expected,
+			)
+		}
+	}
+}

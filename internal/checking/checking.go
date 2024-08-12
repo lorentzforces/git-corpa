@@ -72,18 +72,24 @@ func parseStashEntry(rawEntry string) (StashEntry, error) {
 
 var diffParseError = fmt.Errorf("An error was encoutnered while parsing diff output")
 
+func parseDiffLines(rawLines []string) ([]DiffFile, error) {
+	// TODO: move implementation here to retrieve lines from the diff, so that this can be tested
+	// individually on a line basis, and fetching current file information can be done afterwards
+	_ = rawLines
+	return nil, nil
+}
+
 var resultFileRegex = regexp.MustCompile(`b/(\S+)\z`)
 func parseDiff(rawLines []string) ([]DiffFile, error) {
 
 	// header-header: starts with "diff --git"
 	// header lines: between a header-header and the first chunk
-	// chunk lines: start with @@
+	// chunk lines: start with some number of @ symbols
+	//              and have
 
 
 
-
-
-	files := make([]DiffFile, 0)
+	files := make(map[string]DiffFile, 0)
 	fileName := ""
 	_ = fileName
 	lastHeaderHeader := 0
@@ -100,13 +106,20 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 
 			targetFile := matches[1]
 			if targetFile == "/dev/null" {
-				// impossible for there to be added lines here
-				continue
+				continue // impossible for there to be added lines here
 			}
+
+			// TODO: determine line number (in file) from diff
 
 			lastHeaderHeader = i
 			fileName = targetFile
+			files[fileName] = DiffFile{
+				FileName: fileName,
+				Indents: IndentUnknown,
+				ChangedLines: make([]DiffLine, 0),
+			}
 		}
+		// TODO: handle git's combined format that can have a variable number of "@" symbols
 		isChunkHeader := strings.HasPrefix(rawLine, "@@")
 		if isChunkHeader {
 			lastChunkHeader = i
@@ -117,12 +130,13 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 			continue
 		}
 
-		firstChar := fmt.Sprintf("%.1s", rawLine)
-		if firstChar == " " || firstChar == "-" {
+		lineRunes := []rune(rawLine)
+		firstChar := lineRunes[0]
+		if firstChar == ' ' || firstChar == '-' {
 			continue
 		}
 		platform.Assert(
-			firstChar == "+",
+			firstChar == '+',
 			fmt.Sprintf(
 				"Diff file content line did not start with one of [ -+], last file header: " +
 					"\"%s\" offending line is:\n%s",
@@ -130,13 +144,47 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 			),
 		)
 
-		// TODO: add file struct where necessary
-		// TODO: add line struct to files
+		line := DiffLine{}
+		CharLoop: for i := 1; i < len(lineRunes); i++ {
+			ch := lineRunes[i]
+			switch ch {
+			case ' ': accreteIndentKind(line.Indents, IndentSpace)
+			case '\t': accreteIndentKind(line.Indents, IndentTab)
+			default: break CharLoop
+			}
+		}
+		if lineRunes[1] == ' ' {
+			line.Indents = IndentSpace
+		} else if lineRunes[1] == '\t' {
+			line.Indents = IndentTab
+		}
 
 		// TODO: figure out where original file whitespace determination happens? putting it in here makes testing a pain
 
 	}
-	return files, nil
+
+	fileSlice := make([]DiffFile, 0, len(files))
+	for _, file := range files {
+		fileSlice = append(fileSlice, file)
+	}
+	return fileSlice, nil
+}
+
+func accreteIndentKind(existing, observed IndentKind) IndentKind {
+	if existing == IndentMixedLine {
+		return IndentMixedLine
+	}
+	if existing == IndentUnknown {
+		return observed
+	}
+	if observed == IndentUnknown {
+		return existing
+	}
+	if existing == observed {
+		return observed
+	}
+
+	return IndentMixedLine
 }
 
 type CheckData struct {
@@ -159,9 +207,22 @@ type DiffLine struct {
 
 type IndentKind int
 const (
-	IndentTab IndentKind = iota
+	IndentUnknown IndentKind = iota
+	IndentTab
 	IndentSpace
+	IndentMixedLine
 )
+
+func (ik IndentKind) String() string {
+	switch ik {
+		case IndentUnknown: return "IndentUnknown"
+		case IndentTab: return "IndentTab"
+		case IndentSpace: return "IndentSpace"
+		case IndentMixedLine: return "IndentMixedLine"
+	}
+	platform.Assert(false, fmt.Sprintf("Invalid IndentKind value provided: %d", ik))
+	panic("INVALID STATE: INVALID IndentKind VALUE PROVIDED")
+}
 
 type StashEntry struct {
 	Number uint
