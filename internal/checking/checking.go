@@ -25,7 +25,7 @@ func CheckChanges() (CheckData, error) {
 	checkData.StashEntries = stashEntries
 
 	rawDiffLines := git.Diff()
-	diffFiles, err := parseDiff(rawDiffLines)
+	diffFiles, err := parseDiffLines(rawDiffLines)
 	_, _ = diffFiles, err
 
 	_ = repoRoot
@@ -72,23 +72,9 @@ func parseStashEntry(rawEntry string) (StashEntry, error) {
 
 var diffParseError = fmt.Errorf("An error was encoutnered while parsing diff output")
 
-func parseDiffLines(rawLines []string) ([]DiffFile, error) {
-	// TODO: move implementation here to retrieve lines from the diff, so that this can be tested
-	// individually on a line basis, and fetching current file information can be done afterwards
-	_ = rawLines
-	return nil, nil
-}
-
 var resultFileRegex = regexp.MustCompile(`b/(\S+)\z`)
-func parseDiff(rawLines []string) ([]DiffFile, error) {
-
-	// header-header: starts with "diff --git"
-	// header lines: between a header-header and the first chunk
-	// chunk lines: start with some number of @ symbols
-	//              and have
-
-
-
+var extendedHeaderRegex = regexp.MustCompile(`\A(index|mode|new file mode|deleted file mode)`)
+func parseDiffLines(rawLines []string) ([]DiffFile, error) {
 	files := make(map[string]DiffFile, 0)
 	fileName := ""
 	_ = fileName
@@ -118,6 +104,11 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 				Indents: IndentUnknown,
 				ChangedLines: make([]DiffLine, 0),
 			}
+			continue
+		}
+		isExtendedHeader := extendedHeaderRegex.MatchString(rawLine)
+		if isExtendedHeader {
+			continue
 		}
 		// TODO: handle git's combined format that can have a variable number of "@" symbols
 		isChunkHeader := strings.HasPrefix(rawLine, "@@")
@@ -139,7 +130,7 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 			firstChar == '+',
 			fmt.Sprintf(
 				"Diff file content line did not start with one of [ -+], last file header: " +
-					"\"%s\" offending line is:\n%s",
+					"\"%s\" offending line is:\n\"%s\"",
 				fileName, rawLine,
 			),
 		)
@@ -158,9 +149,6 @@ func parseDiff(rawLines []string) ([]DiffFile, error) {
 		} else if lineRunes[1] == '\t' {
 			line.Indents = IndentTab
 		}
-
-		// TODO: figure out where original file whitespace determination happens? putting it in here makes testing a pain
-
 	}
 
 	fileSlice := make([]DiffFile, 0, len(files))

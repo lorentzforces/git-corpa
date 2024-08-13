@@ -3,6 +3,7 @@ package platform
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func FailOut(msg string) {
@@ -29,4 +30,8 @@ func Assert(condition bool, more any) {
 func AssertNoErr(err error) {
 	if err == nil { return }
 	panic(fmt.Sprintf("Assertion violated, error encountered: %s ", err.Error()))
+}
+
+func SplitLines(s string) []string {
+	return strings.FieldsFunc(s, func(c rune) bool {return c == '\n' || c == '\r'})
 }

@@ -51,7 +51,7 @@ func StashEntries() []string {
 	platform.FailOnErr(err)
 
 	fullOutput := string(stdOut[:])
-	return strings.FieldsFunc(fullOutput, func(c rune) bool {return c == '\n' || c == '\r'})
+	return platform.SplitLines(fullOutput)
 }
 
 func Diff() []string {
@@ -61,5 +61,5 @@ func Diff() []string {
 	platform.FailOnErr(err)
 
 	fullOutput := string(stdOut[:])
-	return strings.FieldsFunc(fullOutput, func(c rune) bool {return c == '\n' || c == '\r'})
+	return platform.SplitLines(fullOutput)
 }

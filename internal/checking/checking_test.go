@@ -1,11 +1,15 @@
 package checking
 
 import (
+	_ "embed"
 	"errors"
 	"testing"
+
+	"github.com/lorentzforces/check-changes/internal/platform"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestParsingStashEntries(T *testing.T) {
+func TestParsingStashEntries(t *testing.T) {
 	cases := []struct{
 		rawEntry string
 		expectedNumber uint
@@ -30,13 +34,10 @@ func TestParsingStashEntries(T *testing.T) {
 
 	for _, testCase := range cases {
 		output, err := parseStashEntry(testCase.rawEntry)
-
-		if err != nil {
-			T.Errorf("parseStashEntry returned unexpected error %s", err.Error())
-		}
+		assert.Nil(t, err)
 
 		if testCase.expectedBranch != output.Branch {
-			T.Errorf(
+			t.Errorf(
 				"parseStashEntry was expected to parse the branch \"%s\", but found the branch " +
 					"\"%s\" instead",
 				testCase.expectedBranch, output.Branch,
@@ -44,7 +45,7 @@ func TestParsingStashEntries(T *testing.T) {
 		}
 
 		if testCase.expectedNumber != output.Number {
-			T.Errorf(
+			t.Errorf(
 				"parseStashEntry was expected to parse the stash number %d, but found %d instead",
 				testCase.expectedNumber, output.Number,
 			)
@@ -54,7 +55,7 @@ func TestParsingStashEntries(T *testing.T) {
 
 // most of these are never happening in practice, but this helps me verify my parsing is working
 // how I expect it to work
-func TestParseStashEntriesWithErrors(T *testing.T) {
+func TestParseStashEntriesWithErrors(t *testing.T) {
 	rawEntries := []string {
 		"an absolutely garbage stash entry",
 		"stash@{-999}: On test: a negative number in the stash number",
@@ -64,15 +65,15 @@ func TestParseStashEntriesWithErrors(T *testing.T) {
 	for _, rawEntry := range rawEntries {
 		_, err := parseStashEntry(rawEntry)
 		if err == nil {
-			T.Errorf(
+			t.Errorf(
 				"Expected an error with this stash entry string, but was not given an error.\n" +
 					"Offending entry: \"%s\"",
 				rawEntry,
 			)
 		} else if errors.Is(err, stashParseError) {
-			T.Logf("Expected error: %s", err.Error())
+			t.Logf("Expected error: %s", err.Error())
 		} else {
-			T.Errorf(
+			t.Errorf(
 				"Expected an error matching 'stashParseError', but was given an unrelated error: %s",
 				err.Error(),
 			)
@@ -80,7 +81,7 @@ func TestParseStashEntriesWithErrors(T *testing.T) {
 	}
 }
 
-func TestAccreteIndentKind(T *testing.T) {
+func TestAccreteIndentKind(t *testing.T) {
 	cases := []struct{
 		existing IndentKind
 		observed IndentKind
@@ -107,10 +108,34 @@ func TestAccreteIndentKind(T *testing.T) {
 	for _, testCase := range cases {
 		result := accreteIndentKind(testCase.existing, testCase.observed)
 		if testCase.expected != result {
-			T.Errorf(
+			t.Errorf(
 				"accreteIndentKind(%s, %s) produced %s, but %s was expected",
 				testCase.existing, testCase.observed, result, testCase.expected,
 			)
 		}
 	}
+}
+
+//go:embed pawtucket-test.diff
+var pawtucketTest string
+
+func TestParseDiffLinesAlwaysSetsUnknownIndents(t *testing.T) {
+	diffFiles, err := parseDiffLines(platform.SplitLines(pawtucketTest))
+	if !assert.Nil(t, err) { t.FailNow() }
+	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
+	for _, diffFile := range diffFiles {
+		assert.Equal(t, IndentUnknown, diffFile.Indents,
+			"diff file %s reported %s indents instead of IndentUnknown",
+			diffFile.FileName, diffFile.Indents,
+		)
+	}
+}
+
+func TestParseDiffLines(t *testing.T) {
+	diffFiles, err := parseDiffLines(platform.SplitLines(pawtucketTest))
+	if !assert.Nil(t, err) { t.FailNow() }
+	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
+	diffFile := diffFiles[0]
+
+	assert.Equal(t, IndentUnknown, diffFile.Indents)
 }
