@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	// "github.com/davecgh/go-spew/spew"
 	"github.com/lorentzforces/check-changes/internal/checking"
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
@@ -20,17 +21,8 @@ func main() {
 
 	checkData, err := checking.CheckChanges()
 	platform.FailOnErr(err)
-	fmt.Printf("checked data: %+v\n", checkData)
 
-
-
-
-	// gather shared information
-	// take shared information and iterate over the list of checks
-	// checks:
-	// - checks which operate on changed lines
-	// - checks which operate on stash entries
-	// checks return check result structure
-	fmt.Printf("changes will be checked!\n")
-
+	for _, file := range checkData.Files {
+		fmt.Printf("==DEBUG== diffed file %s has indents: %s\n", file.FileName, file.Indents)
+	}
 }

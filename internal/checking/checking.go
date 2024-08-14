@@ -1,8 +1,12 @@
 package checking
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,10 +29,23 @@ func CheckChanges() (CheckData, error) {
 	checkData.StashEntries = stashEntries
 
 	rawDiffLines := git.Diff()
-	diffFiles, err := parseDiffLines(rawDiffLines)
-	_, _ = diffFiles, err
 
-	_ = repoRoot
+	diffFiles := parseDiffLines(rawDiffLines)
+	platform.AssertNoErr(err)
+
+	for i := range diffFiles {
+		diffFile := &diffFiles[i]
+		realFilePath := filepath.Join(repoRoot, diffFile.FileName)
+		file, err := os.Open(realFilePath)
+		platform.AssertNoErr(err)
+
+		populateFileInfo(diffFile, file)
+		file.Close()
+	}
+	checkData.Files = diffFiles
+
+	// TODO: validate output check data
+
 	return checkData, nil
 }
 
@@ -74,12 +91,13 @@ var diffParseError = fmt.Errorf("An error was encoutnered while parsing diff out
 
 var resultFileRegex = regexp.MustCompile(`b/(\S+)\z`)
 var extendedHeaderRegex = regexp.MustCompile(`\A(index|mode|new file mode|deleted file mode)`)
-func parseDiffLines(rawLines []string) ([]DiffFile, error) {
-	files := make(map[string]DiffFile, 0)
+var chunkHeaderLineNumRegex = regexp.MustCompile(`\b+(\d+),`)
+func parseDiffLines(rawLines []string) []DiffFile {
+	files := make(map[string]*DiffFile, 0)
 	fileName := ""
-	_ = fileName
-	lastHeaderHeader := 0
-	lastChunkHeader := 0
+	lastHeaderHeader := -1
+	lastChunkHeader := -1
+	newFileLineNumber := -1
 
 	for i, rawLine := range rawLines {
 		isHeaderHeader := strings.HasPrefix(rawLine, "diff --git")
@@ -95,27 +113,36 @@ func parseDiffLines(rawLines []string) ([]DiffFile, error) {
 				continue // impossible for there to be added lines here
 			}
 
-			// TODO: determine line number (in file) from diff
-
 			lastHeaderHeader = i
 			fileName = targetFile
-			files[fileName] = DiffFile{
+			files[fileName] = &DiffFile{
 				FileName: fileName,
 				Indents: IndentUnknown,
 				ChangedLines: make([]DiffLine, 0),
 			}
 			continue
 		}
+
 		isExtendedHeader := extendedHeaderRegex.MatchString(rawLine)
 		if isExtendedHeader {
 			continue
 		}
-		// TODO: handle git's combined format that can have a variable number of "@" symbols
+
 		isChunkHeader := strings.HasPrefix(rawLine, "@@")
 		if isChunkHeader {
 			lastChunkHeader = i
+			matches := chunkHeaderLineNumRegex.FindStringSubmatch(rawLine)
+			if matches == nil {
+				// chunk is removed lines only
+				continue
+			}
+			lineNumber, err := strconv.Atoi(matches[1])
+			platform.AssertNoErr(err)
+			newFileLineNumber = lineNumber
+
 			continue
 		}
+
 		isHeaderLine := lastHeaderHeader < i && lastChunkHeader < lastHeaderHeader
 		if isHeaderLine {
 			continue
@@ -123,7 +150,11 @@ func parseDiffLines(rawLines []string) ([]DiffFile, error) {
 
 		lineRunes := []rune(rawLine)
 		firstChar := lineRunes[0]
-		if firstChar == ' ' || firstChar == '-' {
+		if firstChar == ' ' {
+			newFileLineNumber++
+			continue
+		}
+		if firstChar == '-' {
 			continue
 		}
 		platform.Assert(
@@ -136,26 +167,55 @@ func parseDiffLines(rawLines []string) ([]DiffFile, error) {
 		)
 
 		line := DiffLine{}
-		CharLoop: for i := 1; i < len(lineRunes); i++ {
-			ch := lineRunes[i]
-			switch ch {
-			case ' ': accreteIndentKind(line.Indents, IndentSpace)
-			case '\t': accreteIndentKind(line.Indents, IndentTab)
-			default: break CharLoop
-			}
-		}
-		if lineRunes[1] == ' ' {
+		line.Content = rawLine
+		line.LineNumber = uint(newFileLineNumber)
+
+		line.Indents = whichLineIndents(lineRunes[1:])
+
+		if len(lineRunes) < 2 {
+			line.Indents= IndentUnknown
+		} else if lineRunes[1] == ' ' {
 			line.Indents = IndentSpace
 		} else if lineRunes[1] == '\t' {
 			line.Indents = IndentTab
 		}
+
+		currentFile := files[fileName]
+		currentFile.ChangedLines = append(currentFile.ChangedLines, line)
+		newFileLineNumber++
 	}
 
 	fileSlice := make([]DiffFile, 0, len(files))
 	for _, file := range files {
-		fileSlice = append(fileSlice, file)
+		fileSlice = append(fileSlice, *file)
 	}
-	return fileSlice, nil
+
+	return fileSlice
+}
+
+// do filesystem-related things with a DiffFile
+func populateFileInfo(diffFile *DiffFile, file io.Reader) {
+	input := bufio.NewScanner(file)
+
+	fileIndents := IndentUnknown
+	for input.Scan() && fileIndents == IndentUnknown {
+		fileIndents = whichLineIndents([]rune(input.Text()))
+	}
+	diffFile.Indents = fileIndents
+}
+
+func whichLineIndents(line []rune) IndentKind {
+	indents := IndentUnknown
+	for i := 0; i < len(line); i++ {
+		ch := line[i]
+		switch ch {
+		case ' ': indents = accreteIndentKind(indents, IndentSpace)
+		case '\t': indents = accreteIndentKind(indents, IndentTab)
+		default:
+			return indents
+		}
+	}
+	return indents
 }
 
 func accreteIndentKind(existing, observed IndentKind) IndentKind {
@@ -174,6 +234,7 @@ func accreteIndentKind(existing, observed IndentKind) IndentKind {
 
 	return IndentMixedLine
 }
+
 
 type CheckData struct {
 	CurrentBranch string

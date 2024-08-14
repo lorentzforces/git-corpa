@@ -3,6 +3,8 @@ package checking
 import (
 	_ "embed"
 	"errors"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/lorentzforces/check-changes/internal/platform"
@@ -120,8 +122,7 @@ func TestAccreteIndentKind(t *testing.T) {
 var pawtucketTest string
 
 func TestParseDiffLinesAlwaysSetsUnknownIndents(t *testing.T) {
-	diffFiles, err := parseDiffLines(platform.SplitLines(pawtucketTest))
-	if !assert.Nil(t, err) { t.FailNow() }
+	diffFiles := parseDiffLines(platform.SplitLines(pawtucketTest))
 	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
 	for _, diffFile := range diffFiles {
 		assert.Equal(t, IndentUnknown, diffFile.Indents,
@@ -132,10 +133,55 @@ func TestParseDiffLinesAlwaysSetsUnknownIndents(t *testing.T) {
 }
 
 func TestParseDiffLines(t *testing.T) {
-	diffFiles, err := parseDiffLines(platform.SplitLines(pawtucketTest))
-	if !assert.Nil(t, err) { t.FailNow() }
+	diffFiles := parseDiffLines(platform.SplitLines(pawtucketTest))
 	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
-	diffFile := diffFiles[0]
 
-	assert.Equal(t, IndentUnknown, diffFile.Indents)
+	diffFile := diffFiles[0]
+	assert.Equal(t, "nantucket.txt", diffFile.FileName)
+
+	if !assert.Len(t, diffFile.ChangedLines, 3) { t.FailNow() }
+
+	// first changed line
+	firstChangeLine := diffFile.ChangedLines[0]
+	assert.Equal(t, uint(1), firstChangeLine.LineNumber)
+	assert.Equal(t, IndentUnknown, firstChangeLine.Indents)
+
+	// second changed line
+	secondChangeLine := diffFile.ChangedLines[1]
+	assert.Equal(t, uint(3), secondChangeLine.LineNumber)
+	assert.Equal(t, IndentTab, secondChangeLine.Indents)
+
+	// third changed line
+	thirdChangeLine := diffFile.ChangedLines[2]
+	assert.Equal(t, uint(5), thirdChangeLine.LineNumber)
+	assert.Equal(t, IndentUnknown, thirdChangeLine.Indents)
+}
+
+func TestPopulateFileInfo(t *testing.T) {
+	spaceFile := strings.NewReader(`file header
+    test
+`)
+	tabFile := strings.NewReader(`file header
+	test
+`)
+	mixedFile := strings.NewReader(`file header
+	  test
+`)
+	testCases := []struct {
+		inputReader io.Reader
+		expectedIndent IndentKind
+	} {
+		{ spaceFile, IndentSpace },
+		{ tabFile, IndentTab },
+		{ mixedFile, IndentMixedLine },
+	}
+
+	for _, testCase := range testCases {
+		diffFile := &DiffFile{}
+		populateFileInfo(diffFile, testCase.inputReader)
+		assert.Equal(t, testCase.expectedIndent, diffFile.Indents,
+			"Expected indent kind %s, but observed %s",
+			testCase.expectedIndent, diffFile.Indents,
+		)
+	}
 }
