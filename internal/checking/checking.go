@@ -169,16 +169,7 @@ func parseDiffLines(rawLines []string) []DiffFile {
 		line := DiffLine{}
 		line.Content = rawLine
 		line.LineNumber = uint(newFileLineNumber)
-
 		line.Indents = whichLineIndents(lineRunes[1:])
-
-		if len(lineRunes) < 2 {
-			line.Indents= IndentUnknown
-		} else if lineRunes[1] == ' ' {
-			line.Indents = IndentSpace
-		} else if lineRunes[1] == '\t' {
-			line.Indents = IndentTab
-		}
 
 		currentFile := files[fileName]
 		currentFile.ChangedLines = append(currentFile.ChangedLines, line)
