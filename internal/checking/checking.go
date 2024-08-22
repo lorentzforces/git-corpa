@@ -421,9 +421,14 @@ func reportChecks(data checkData) CheckReport {
 	return result
 }
 
-// remove git diff marker, any leading whitespace after that marker, and any trailing whitespace
+// Remove git diff marker, any leading whitespace after that marker, and any trailing whitespace.
+// Additionally, if the trimmed result is more than 80 characters, chop it down to 80
 func trimReportedLine(line string) string {
 	lineRunes := []rune(line)
 	lineRunes = lineRunes[1:]
-	return strings.TrimSpace(string(lineRunes))
+	trimmedLine := []rune(strings.TrimSpace(string(lineRunes)))
+	if len(trimmedLine) > 80 {
+		trimmedLine = trimmedLine[:77]
+	}
+	return fmt.Sprintf("%s...", string(trimmedLine))
 }
