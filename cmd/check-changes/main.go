@@ -2,15 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	// "github.com/davecgh/go-spew/spew"
 	"github.com/lorentzforces/check-changes/internal/checking"
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
 )
-
-// bad news, based on what I'm seeing from libraries, we're going to have to shell out for everything and parse git output manually
-// good news is that means we get to define all our own data structures and output
 
 // NOTE: for now, this only checks staged changes
 // TODO: accept a ref and diff against that ref
@@ -22,7 +19,24 @@ func main() {
 	checkData, err := checking.CheckChanges()
 	platform.FailOnErr(err)
 
-	for _, file := range checkData.Files {
-		fmt.Printf("==DEBUG== diffed file %s has indents: %s\n", file.FileName, file.Indents)
+	hasErrors := len(checkData.Errors) > 0
+	if hasErrors {
+		fmt.Println("POTENTIAL MAJOR ISSUES:")
+		for _, errorFlag := range checkData.Errors {
+			fmt.Printf("  - %s\n", errorFlag.Message())
+			fmt.Println("")
+		}
+	}
+
+	if len(checkData.Warnings) > 0 {
+		fmt.Println("POTENTIAL ISSUES:")
+		for _, warnFlag := range checkData.Warnings {
+			fmt.Printf("  - %s\n", warnFlag.Message())
+			fmt.Println("")
+		}
+	}
+
+	if hasErrors {
+		os.Exit(1)
 	}
 }

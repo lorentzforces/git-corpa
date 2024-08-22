@@ -123,7 +123,9 @@ var pawtucketTest string
 
 func TestParseDiffLinesAlwaysSetsUnknownIndents(t *testing.T) {
 	diffFiles := parseDiffLines(platform.SplitLines(pawtucketTest))
-	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
+	assert.Len(t, diffFiles, 1)
+	if t.Failed() { t.FailNow() }
+
 	for _, diffFile := range diffFiles {
 		assert.Equal(t, IndentUnknown, diffFile.Indents,
 			"diff file %s reported %s indents instead of IndentUnknown",
@@ -134,12 +136,14 @@ func TestParseDiffLinesAlwaysSetsUnknownIndents(t *testing.T) {
 
 func TestParseDiffLines(t *testing.T) {
 	diffFiles := parseDiffLines(platform.SplitLines(pawtucketTest))
-	if !assert.Len(t, diffFiles, 1) { t.FailNow() }
+	assert.Len(t, diffFiles, 1)
+	if t.Failed() { t.FailNow() }
 
 	diffFile := diffFiles[0]
 	assert.Equal(t, "nantucket.txt", diffFile.FileName)
 
-	if !assert.Len(t, diffFile.ChangedLines, 3) { t.FailNow() }
+	assert.Len(t, diffFile.ChangedLines, 3)
+	if t.Failed() { t.FailNow() }
 
 	// first changed line
 	firstChangeLine := diffFile.ChangedLines[0]
@@ -177,11 +181,65 @@ func TestPopulateFileInfo(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		diffFile := &DiffFile{}
+		diffFile := &diffFile{}
 		populateFileInfo(diffFile, testCase.inputReader)
 		assert.Equal(t, testCase.expectedIndent, diffFile.Indents,
 			"Expected indent kind %s, but observed %s",
 			testCase.expectedIndent, diffFile.Indents,
 		)
 	}
+}
+
+func TestKeywordDetection(t *testing.T) {
+	testData := checkData{
+		Files: []diffFile{
+			diffFile{
+				FileName: "test-warn.txt",
+				Indents: IndentSpace,
+				ChangedLines: []diffLine{
+					diffLine{
+						LineNumber: 4,
+						Indents: IndentSpace,
+						Content: "// TODO: rewrite in rust",
+					},
+					diffLine{
+						LineNumber: 5,
+						Indents: IndentSpace,
+						Content: "public static void main(string[] args)",
+					},
+				},
+			},
+			diffFile{
+				FileName: "test-error.txt",
+				Indents: IndentSpace,
+				ChangedLines: []diffLine{
+					diffLine{
+						LineNumber: 6,
+						Indents: IndentSpace,
+						Content: "// NOCHECKIN",
+					},
+				},
+			},
+		},
+	}
+
+	result := reportChecks(testData)
+
+	assert.Len(t, result.Warnings, 1, "expected exactly one warning-level flag")
+	assert.Len(t, result.Errors, 1, "expected exactly one error-level flag")
+	if t.Failed() { t.FailNow() }
+
+	assert.IsType(t, KeywordPresenceFlag{}, result.Warnings[0])
+	assert.IsType(t, KeywordPresenceFlag{}, result.Errors[0])
+	if t.Failed() { t.FailNow() }
+	warnFlag := result.Warnings[0].(KeywordPresenceFlag)
+	errFlag := result.Errors[0].(KeywordPresenceFlag)
+
+	assert.Equal(t, "test-warn.txt", warnFlag.FileName)
+	assert.Equal(t, "TODO", warnFlag.Keyword)
+	assert.Equal(t, uint(4), warnFlag.LineNumber)
+
+	assert.Equal(t, "test-error.txt", errFlag.FileName)
+	assert.Equal(t, "NOCHECKIN", errFlag.Keyword)
+	assert.Equal(t, uint(6), errFlag.LineNumber)
 }
