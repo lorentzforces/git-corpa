@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
 )
@@ -393,7 +392,7 @@ func reportChecks(data checkData) CheckReport {
 				result.Errors = append(result.Errors, keywordFlag)
 			}
 			if _, ok := warnKeywords[keyword]; ok {
-				result.Warnings = append(result.Errors, keywordFlag)
+				result.Warnings = append(result.Warnings, keywordFlag)
 			}
 		}
 	}

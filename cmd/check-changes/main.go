@@ -11,6 +11,8 @@ import (
 
 // NOTE: for now, this only checks staged changes
 // TODO: accept a ref and diff against that ref
+// TODO: added todo line 1
+// TODO: added todo line 2
 func main() {
 	if !git.ExecExists() {
 		platform.FailOut("\"git\" executable not found on system PATH")
