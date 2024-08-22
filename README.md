@@ -39,3 +39,4 @@ To build the project, simply run `make` in the project's root directory to build
 - Maybe make this configurable, so if a `CHK_CHNG_DEF_REF` environment variable (or something like that) is set, the command will default to diffing against that ref.
 - Add a CLI flag to skip showing context.
 - Colorize CLI output (when stdout is not a pipe).
+- Make keyword searching configurable so people can set their own custom keywords.
