@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
 )
@@ -30,14 +31,20 @@ type CheckReport struct {
 
 type CheckFlag interface {
 	Message() string
+	Context() string
 }
 
 type StashEntryFlag struct {
 	Number uint
+	FullLine string
 }
 
 func (flag StashEntryFlag) Message() string {
 	return fmt.Sprintf("Stash entry {%d} has stashed changes from your current branch", flag.Number)
+}
+
+func (flag StashEntryFlag) Context() string {
+	return flag.FullLine
 }
 
 type LineIndentFlag struct {
@@ -54,6 +61,10 @@ func (flag LineIndentFlag) Message() string {
 	)
 }
 
+func (flag LineIndentFlag) Context() string {
+	return ""
+}
+
 type KeywordPresenceFlag struct {
 	FileName string
 	LineNumber uint
@@ -63,9 +74,13 @@ type KeywordPresenceFlag struct {
 
 func (flag KeywordPresenceFlag) Message() string {
 	return fmt.Sprintf(
-		"%s:%d | line contains keyword \"%s\": %s",
-		flag.FileName, flag.LineNumber, flag.Keyword, flag.LineContent,
+		"%s:%d | line contains keyword \"%s\"",
+		flag.FileName, flag.LineNumber, flag.Keyword,
 	)
+}
+
+func (flag KeywordPresenceFlag) Context() string {
+	return trimReportedLine(flag.LineContent)
 }
 
 type checkData struct {
@@ -363,7 +378,13 @@ func reportChecks(data checkData) CheckReport {
 
 	for _, entry := range data.StashEntries {
 		if entry.Branch == data.CurrentBranch {
-			result.Warnings = append(result.Warnings, StashEntryFlag{ Number: entry.Number })
+			result.Warnings = append(
+				result.Warnings,
+				StashEntryFlag{
+					Number: entry.Number,
+					FullLine: entry.RawString,
+				},
+			)
 		}
 	}
 
@@ -398,4 +419,11 @@ func reportChecks(data checkData) CheckReport {
 	}
 
 	return result
+}
+
+// remove git diff marker, any leading whitespace after that marker, and any trailing whitespace
+func trimReportedLine(line string) string {
+	lineRunes := []rune(line)
+	lineRunes = lineRunes[1:]
+	return strings.TrimSpace(string(lineRunes))
 }

@@ -25,6 +25,9 @@ func main() {
 		fmt.Println("POTENTIAL MAJOR ISSUES:")
 		for _, errorFlag := range checkData.Errors {
 			fmt.Printf("  - %s\n", errorFlag.Message())
+			if context := errorFlag.Context(); len(context) > 0 {
+				fmt.Printf("    %s\n", context)
+			}
 		}
 		if hasWarnings { fmt.Println("") }
 	}
@@ -33,6 +36,9 @@ func main() {
 		fmt.Println("POTENTIAL ISSUES:")
 		for _, warnFlag := range checkData.Warnings {
 			fmt.Printf("  - %s\n", warnFlag.Message())
+			if context := warnFlag.Context(); len(context) > 0 {
+				fmt.Printf("    %s\n", context)
+			}
 		}
 	}
 
