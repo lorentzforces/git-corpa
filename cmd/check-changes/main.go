@@ -13,7 +13,7 @@ import (
 func main() {
 	opts := config.Default()
 	config.ApplyEnv(&opts)
-	flags := config.GenFlags(&opts)
+	flags := config.InitOpts(&opts)
 	flags.Parse(os.Args[1:])
 
 	if opts.HelpRequested {
@@ -55,6 +55,7 @@ func main() {
 }
 
 // TODO: add information about all checks in here
+// TODO: add information about environment variables
 func printUsage() {
 	fmt.Fprint(
 		os.Stderr,
@@ -81,6 +82,6 @@ Options:
 `,
 	)
 
-	flags := config.GenFlags(&config.Config{})
+	flags := config.InitOpts(&config.Config{})
 	flags.PrintDefaults()
 }

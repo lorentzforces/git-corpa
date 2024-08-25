@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// TODO: add some testing in here
+
 type Config struct {
 	HelpRequested bool
 	HideContext bool
@@ -20,7 +22,7 @@ func ApplyEnv(opts *Config) {
 	opts.DiffRef = os.Getenv("CHK_CHNG_REF")
 }
 
-func GenFlags(opts *Config) *pflag.FlagSet {
+func InitOpts(opts *Config) *pflag.FlagSet {
 	flags := pflag.NewFlagSet("main", pflag.ExitOnError)
 
 	flags.BoolVarP(
@@ -45,3 +47,5 @@ func GenFlags(opts *Config) *pflag.FlagSet {
 
 	return flags
 }
+
+const EnvVarUsage = ``
