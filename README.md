@@ -35,7 +35,7 @@ To build the project, simply run `make` in the project's root directory to build
 ## Current project to-dos (in no particular order):
 
 - Use this a bit to shake down bugs.
-- Maybe make this configurable, so if a `CHK_CHNG_DEF_REF` environment variable (or something like that) is set, the command will default to diffing against that ref.
 - Add a CLI flag to skip showing context.
 - Colorize CLI output (when stdout is not a pipe).
 - Make keyword searching configurable so people can set their own custom keywords.
+- make the diff-ref configuration option a listable value, so the user can define multiple refs (e.g. `origin/main` and `origin/master`), and the program will choose the first one it detects exists

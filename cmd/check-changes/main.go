@@ -5,37 +5,27 @@ import (
 	"os"
 
 	"github.com/lorentzforces/check-changes/internal/checking"
+	"github.com/lorentzforces/check-changes/internal/config"
 	"github.com/lorentzforces/check-changes/internal/git"
 	"github.com/lorentzforces/check-changes/internal/platform"
-	"github.com/spf13/pflag"
 )
 
-// NOTE: for now, this only checks staged changes
 func main() {
-	if !git.ExecExists() {
-		platform.FailOut("\"git\" executable not found on system PATH")
-	}
+	opts := config.Default()
+	config.ApplyEnv(&opts)
+	flags := config.GenFlags(&opts)
+	flags.Parse(os.Args[1:])
 
-	var helpRequested bool
-	pflag.BoolVarP(
-		&helpRequested,
-		"help",
-		"h",
-		false,
-		"Print this help message",
-	)
-
-	var diffRef string
-	pflag.StringVar(&diffRef, "ref", "", "an optional git ref to diff against")
-
-	pflag.Parse()
-
-	if helpRequested {
+	if opts.HelpRequested {
 		printUsage()
 		os.Exit(1)
 	}
 
-	checkData, err := checking.CheckChanges(diffRef)
+	if !git.ExecExists() {
+		platform.FailOut("\"git\" executable not found on system PATH")
+	}
+
+	checkData, err := checking.CheckChanges(opts.DiffRef)
 	platform.FailOnErr(err)
 
 	hasErrors := len(checkData.Errors) > 0
@@ -90,5 +80,7 @@ later work, but needs to be committed for now.
 Options:
 `,
 	)
-	pflag.PrintDefaults()
+
+	flags := config.GenFlags(&config.Config{})
+	flags.PrintDefaults()
 }
