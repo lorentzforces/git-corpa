@@ -61,9 +61,7 @@ func main() {
 		}
 	}
 
-	if hasErrors {
-		os.Exit(1)
-	}
+	if hasErrors { os.Exit(1) }
 }
 
 // TODO: add information about all checks in here
@@ -76,16 +74,17 @@ Reads the current state of a git repository in the working directory, checking
 for any potential things which you may want to know about before checking in
 your code. Examples include added TODOs, mismatched indents, and more.
 
-Flagged issues are divided into two levels of severity: blockers and warnings.
+Flagged issues are divided into two levels of severity: major issues and
+everything else.
 
-Blockers are things which are almost always incorrect, and should prevent code
-from being checked in at all. If a blocker is detected, check-changes will
-exit with a non-zero status code. If used as a git hook, this will block the
-commit from being created.
+Major issues are things which are almost always incorrect, and should prevent
+code from being checked in at all. If a major issue is detected, check-changes
+will exit with a non-zero status code. If used as a git hook, this will block
+the commit from being created.
 
-Warnings will be printed to standard output, but will exit with a zero status
-code. Warnings are things which are valid to check in, but a programmer may
-want to know about. For example: a TODO comment may be a good breadcrumb for
+Non-major issues will be printed to standard output, but will exit with a zero
+status code. Warnings are things which are valid to check in, but a programmer
+may want to know about. For example: a TODO comment may be a good breadcrumb for
 later work, but needs to be committed for now.
 
 Options:
