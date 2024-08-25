@@ -35,7 +35,6 @@ To build the project, simply run `make` in the project's root directory to build
 ## Current project to-dos (in no particular order):
 
 - Use this a bit to shake down bugs.
-- Add the ability to pass a ref into the command, in which case the diff used by the tool will be between the current state of the tree and that ref (for example, comparing all changes made so far versus `origin/main`).
 - Maybe make this configurable, so if a `CHK_CHNG_DEF_REF` environment variable (or something like that) is set, the command will default to diffing against that ref.
 - Add a CLI flag to skip showing context.
 - Colorize CLI output (when stdout is not a pipe).

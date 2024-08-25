@@ -54,8 +54,13 @@ func StashEntries() []string {
 	return platform.SplitLines(fullOutput)
 }
 
-func Diff() []string {
-	cmd := exec.Command("git", "diff", "--no-color", "-p", "HEAD")
+// If ref is a non-empty string, diff against whatever ref that is.
+// If empty, then just diff against HEAD (only index/staged changes)
+func Diff(ref string) []string {
+	refForDiff := ref
+	if len(refForDiff) == 0 { refForDiff = "HEAD" }
+
+	cmd := exec.Command("git", "diff", "--no-color", "-p", refForDiff)
 	cmd.Env = []string{}
 	stdOut, err := cmd.Output()
 	platform.FailOnErr(err)
