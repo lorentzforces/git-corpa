@@ -92,5 +92,4 @@ Options:
 `,
 	)
 	pflag.PrintDefaults()
-	test := pflag.FlagSet{}
 }

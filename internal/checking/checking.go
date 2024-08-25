@@ -427,8 +427,14 @@ func trimReportedLine(line string) string {
 	lineRunes := []rune(line)
 	lineRunes = lineRunes[1:]
 	trimmedLine := []rune(strings.TrimSpace(string(lineRunes)))
+
+	var finalLine string
 	if len(trimmedLine) > 80 {
 		trimmedLine = trimmedLine[:77]
+		finalLine = fmt.Sprintf("%s...", string(trimmedLine))
+	} else {
+		finalLine = string(trimmedLine)
 	}
-	return fmt.Sprintf("%s...", string(trimmedLine))
+
+	return finalLine
 }
