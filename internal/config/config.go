@@ -8,21 +8,21 @@ import (
 
 // TODO: add some testing in here
 
-type Config struct {
+type Opts struct {
 	HelpRequested bool
 	HideContext bool
 	DiffRev string
 }
 
-func Default() Config {
-	return Config{}
+func Default() Opts {
+	return Opts{}
 }
 
-func ApplyEnv(opts *Config) {
+func ApplyEnv(opts *Opts) {
 	opts.DiffRev = os.Getenv("CHK_CHNG_REF")
 }
 
-func InitOpts(opts *Config) *pflag.FlagSet {
+func InitOpts(opts *Opts) *pflag.FlagSet {
 	flags := pflag.NewFlagSet("main", pflag.ExitOnError)
 
 	flags.BoolVarP(

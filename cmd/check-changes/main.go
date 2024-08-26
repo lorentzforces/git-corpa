@@ -25,24 +25,22 @@ func main() {
 		platform.FailOut("\"git\" executable not found on system PATH")
 	}
 
-	checkData, err := checking.CheckChanges(opts.DiffRef)
+	checkData, err := checking.CheckChanges(opts.DiffRev)
 	platform.FailOnErr(err)
 
-	printResults(checkData)
+	printResults(&opts, checkData)
 
 	if len(checkData.Errors) > 0 { os.Exit(1) }
 }
 
-func printResults(results checking.CheckReport) {
+func printResults(opts *config.Opts, results checking.CheckReport) {
 	hasErrors := len(results.Errors) > 0
 	hasWarnings := len(results.Warnings) > 0
 	if hasErrors {
 		fmt.Println("POTENTIAL MAJOR ISSUES:")
 		for _, errorFlag := range results.Errors {
 			fmt.Printf("  - %s\n", errorFlag.Message())
-			if context := errorFlag.Context(); len(context) > 0 {
-				fmt.Printf("    %s\n", context)
-			}
+			printContextMsg(opts, errorFlag)
 		}
 		if hasWarnings { fmt.Println("") }
 	}
@@ -51,10 +49,15 @@ func printResults(results checking.CheckReport) {
 		fmt.Println("POTENTIAL ISSUES:")
 		for _, warnFlag := range results.Warnings {
 			fmt.Printf("  - %s\n", warnFlag.Message())
-			if context := warnFlag.Context(); len(context) > 0 {
-				fmt.Printf("    %s\n", context)
-			}
+			printContextMsg(opts, warnFlag)
 		}
+	}
+}
+
+func printContextMsg(opts *config.Opts, flag checking.CheckFlag) {
+	msg := flag.ContextMsg()
+	if !opts.HideContext && len(msg) > 0 {
+		fmt.Printf("    %s\n", msg)
 	}
 }
 
@@ -86,6 +89,6 @@ Options:
 `,
 	)
 
-	flags := config.InitOpts(&config.Config{})
+	flags := config.InitOpts(&config.Opts{})
 	flags.PrintDefaults()
 }

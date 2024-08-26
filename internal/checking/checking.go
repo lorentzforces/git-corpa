@@ -31,7 +31,7 @@ type CheckReport struct {
 
 type CheckFlag interface {
 	Message() string
-	Context() string
+	ContextMsg() string
 }
 
 type StashEntryFlag struct {
@@ -43,7 +43,7 @@ func (flag StashEntryFlag) Message() string {
 	return fmt.Sprintf("Stash entry {%d} has stashed changes from your current branch", flag.Number)
 }
 
-func (flag StashEntryFlag) Context() string {
+func (flag StashEntryFlag) ContextMsg() string {
 	return flag.FullLine
 }
 
@@ -61,7 +61,7 @@ func (flag LineIndentFlag) Message() string {
 	)
 }
 
-func (flag LineIndentFlag) Context() string {
+func (flag LineIndentFlag) ContextMsg() string {
 	return ""
 }
 
@@ -79,7 +79,7 @@ func (flag KeywordPresenceFlag) Message() string {
 	)
 }
 
-func (flag KeywordPresenceFlag) Context() string {
+func (flag KeywordPresenceFlag) ContextMsg() string {
 	return trimReportedLine(flag.LineContent)
 }
 
