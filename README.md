@@ -37,4 +37,3 @@ To build the project, simply run `make` in the project's root directory to build
 - Use this a bit to shake down bugs.
 - Colorize CLI output (when stdout is not a pipe).
 - Make keyword searching configurable so people can set their own custom keywords.
-- make the diff-ref configuration option a listable value, so the user can define multiple refs (e.g. `origin/main` and `origin/master`), and the program will choose the first one it detects exists
