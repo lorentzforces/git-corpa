@@ -11,7 +11,7 @@ import (
 type Config struct {
 	HelpRequested bool
 	HideContext bool
-	DiffRef string
+	DiffRev string
 }
 
 func Default() Config {
@@ -19,7 +19,7 @@ func Default() Config {
 }
 
 func ApplyEnv(opts *Config) {
-	opts.DiffRef = os.Getenv("CHK_CHNG_REF")
+	opts.DiffRev = os.Getenv("CHK_CHNG_REF")
 }
 
 func InitOpts(opts *Config) *pflag.FlagSet {
@@ -39,9 +39,9 @@ func InitOpts(opts *Config) *pflag.FlagSet {
 		"Do not print additional context information with flagged issues",
 	)
 	flags.StringVar(
-		&opts.DiffRef,
+		&opts.DiffRev,
 		"ref",
-		opts.DiffRef,
+		opts.DiffRev,
 		"an optional git ref to diff against",
 	)
 

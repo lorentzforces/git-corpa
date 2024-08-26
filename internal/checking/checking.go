@@ -15,8 +15,8 @@ import (
 	"github.com/lorentzforces/check-changes/internal/platform"
 )
 
-func CheckChanges(diffRef string) (CheckReport, error) {
-	checkData, err := gatherState(diffRef)
+func CheckChanges(diffRev string) (CheckReport, error) {
+	checkData, err := gatherState(diffRev)
 	if err != nil {
 		return CheckReport{}, err
 	}
@@ -134,7 +134,7 @@ type stashEntry struct {
 	RawString string
 }
 
-func gatherState(diffRef string) (checkData, error) {
+func gatherState(diffRev string) (checkData, error) {
 	repoRoot, err := git.RepoRoot()
 	if err != nil {
 		return checkData{}, err
@@ -147,7 +147,7 @@ func gatherState(diffRef string) (checkData, error) {
 	platform.FailOnErr(err)
 	checkData.StashEntries = stashEntries
 
-	rawDiffLines := git.Diff(diffRef)
+	rawDiffLines := git.Diff(diffRev)
 
 	diffFiles := parseDiffLines(rawDiffLines)
 	platform.AssertNoErr(err)

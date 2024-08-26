@@ -28,11 +28,17 @@ func main() {
 	checkData, err := checking.CheckChanges(opts.DiffRef)
 	platform.FailOnErr(err)
 
-	hasErrors := len(checkData.Errors) > 0
-	hasWarnings := len(checkData.Warnings) > 0
+	printResults(checkData)
+
+	if len(checkData.Errors) > 0 { os.Exit(1) }
+}
+
+func printResults(results checking.CheckReport) {
+	hasErrors := len(results.Errors) > 0
+	hasWarnings := len(results.Warnings) > 0
 	if hasErrors {
 		fmt.Println("POTENTIAL MAJOR ISSUES:")
-		for _, errorFlag := range checkData.Errors {
+		for _, errorFlag := range results.Errors {
 			fmt.Printf("  - %s\n", errorFlag.Message())
 			if context := errorFlag.Context(); len(context) > 0 {
 				fmt.Printf("    %s\n", context)
@@ -43,15 +49,13 @@ func main() {
 
 	if hasWarnings {
 		fmt.Println("POTENTIAL ISSUES:")
-		for _, warnFlag := range checkData.Warnings {
+		for _, warnFlag := range results.Warnings {
 			fmt.Printf("  - %s\n", warnFlag.Message())
 			if context := warnFlag.Context(); len(context) > 0 {
 				fmt.Printf("    %s\n", context)
 			}
 		}
 	}
-
-	if hasErrors { os.Exit(1) }
 }
 
 // TODO: add information about all checks in here
