@@ -65,7 +65,6 @@ func printContextMsg(opts *config.Opts, flag checking.CheckFlag) {
 }
 
 // TODO: add information about all checks in here
-// TODO: add information about environment variables
 func printUsage() {
 	fmt.Fprint(
 		os.Stderr,
@@ -88,9 +87,12 @@ status code. Warnings are things which are valid to check in, but a programmer
 may want to know about. For example: a TODO comment may be a good breadcrumb for
 later work, but needs to be committed for now.
 
-Options:
 `,
 	)
+
+	fmt.Fprint(os.Stderr, config.EnvVarHelp())
+
+	fmt.Fprint(os.Stderr, "\n\nOPTIONS\n")
 
 	flags := config.InitOpts(&config.Opts{})
 	flags.PrintDefaults()

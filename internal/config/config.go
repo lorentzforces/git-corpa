@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,10 +19,6 @@ type Opts struct {
 
 func Default() Opts {
 	return Opts{}
-}
-
-func ApplyEnv(opts *Opts) {
-	opts.RawRevs = os.Getenv("CHK_CHNG_REF")
 }
 
 func InitOpts(opts *Opts) *pflag.FlagSet {
@@ -50,11 +47,31 @@ func InitOpts(opts *Opts) *pflag.FlagSet {
 	return flags
 }
 
+const envPrefix string = "CHCK_CHNG_"
+const rawRevsEnv string = envPrefix + "REVS"
+
+func ApplyEnv(opts *Opts) {
+	opts.RawRevs = os.Getenv(rawRevsEnv)
+}
+
 const rawRevsHelp string =
-	"An optional git rev to diff against. You may pass a list of revs, separated by colons (:).\n" +
-	"The first valid rev will be used.\n" +
-	"If no valid rev is matched, the diff used will be as \"git diff\" with no arguments"
+	`An optional git rev to diff against. You may pass a list of revs, separated by colons (:).
+	The first valid rev will be used.
+	If no valid rev is matched, the diff used will be as \"git diff\" with no arguments.`
 
 func (opts *Opts) ParseRevs() {
 	opts.ParsedRevs = strings.Split(opts.RawRevs, ":")
+}
+
+func EnvVarHelp() string {
+	text := `ENVIRONMENT VARIABLES
+
+Some values can be set in environment variables. In general, an option which
+can be specified by an environment variable will be overridden if that option
+is specified as a command-line option.
+
+The following environment variables are available:
+  - %s: corresponds to the "revs" command-line option`
+
+	return fmt.Sprintf(text, rawRevsEnv)
 }
