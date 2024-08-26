@@ -40,7 +40,7 @@ func InitOpts(opts *Opts) *pflag.FlagSet {
 	)
 	flags.StringVar(
 		&opts.DiffRev,
-		"ref",
+		"rev",
 		opts.DiffRev,
 		"an optional git ref to diff against",
 	)
