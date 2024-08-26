@@ -14,6 +14,7 @@ func ExecExists() bool {
 }
 
 var RepoDoesNotExistError = fmt.Errorf("Not inside a git repository")
+
 func RepoRoot() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Env = []string{}
@@ -42,6 +43,21 @@ func CurrentBranch() string {
 	platform.FailOnErr(err)
 	fullOutput := string(stdOut[:])
 	return strings.TrimRight(fullOutput, "\n\r")
+}
+
+// returns whether the passed rev name resolves to a commit
+func ValidRev(revName string) bool {
+	cmd := exec.Command("git", "rev-parse", "--verify", revName)
+	err := cmd.Run()
+	return err == nil
+}
+
+func FirstValidRev(revs []string) (string, error) {
+	for _, rev := range revs {
+		if ValidRev(rev) { return rev, nil }
+	}
+
+	return "", fmt.Errorf("None of the revs provided resolved to a valid git object")
 }
 
 func StashEntries() []string {

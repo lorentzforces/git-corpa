@@ -15,6 +15,7 @@ func main() {
 	config.ApplyEnv(&opts)
 	flags := config.InitOpts(&opts)
 	flags.Parse(os.Args[1:])
+	opts.ParseRevs()
 
 	if opts.HelpRequested {
 		printUsage()
@@ -25,7 +26,9 @@ func main() {
 		platform.FailOut("\"git\" executable not found on system PATH")
 	}
 
-	checkData, err := checking.CheckChanges(opts.DiffRev)
+	rev, _ := git.FirstValidRev(opts.ParsedRevs)
+
+	checkData, err := checking.CheckChanges(rev)
 	platform.FailOnErr(err)
 
 	printResults(&opts, checkData)

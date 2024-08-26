@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"github.com/spf13/pflag"
 )
@@ -11,7 +12,8 @@ import (
 type Opts struct {
 	HelpRequested bool
 	HideContext bool
-	DiffRev string
+	RawRevs string
+	ParsedRevs []string
 }
 
 func Default() Opts {
@@ -19,7 +21,7 @@ func Default() Opts {
 }
 
 func ApplyEnv(opts *Opts) {
-	opts.DiffRev = os.Getenv("CHK_CHNG_REF")
+	opts.RawRevs = os.Getenv("CHK_CHNG_REF")
 }
 
 func InitOpts(opts *Opts) *pflag.FlagSet {
@@ -39,13 +41,20 @@ func InitOpts(opts *Opts) *pflag.FlagSet {
 		"Do not print additional context information with flagged issues",
 	)
 	flags.StringVar(
-		&opts.DiffRev,
-		"rev",
-		opts.DiffRev,
-		"an optional git ref to diff against",
+		&opts.RawRevs,
+		"revs",
+		opts.RawRevs,
+		rawRevsHelp,
 	)
 
 	return flags
 }
 
-const EnvVarUsage = ``
+const rawRevsHelp string =
+	"An optional git rev to diff against. You may pass a list of revs, separated by colons (:).\n" +
+	"The first valid rev will be used.\n" +
+	"If no valid rev is matched, the diff used will be as \"git diff\" with no arguments"
+
+func (opts *Opts) ParseRevs() {
+	opts.ParsedRevs = strings.Split(opts.RawRevs, ":")
+}
