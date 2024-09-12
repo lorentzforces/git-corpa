@@ -1,6 +1,12 @@
-# check-changes
+# git-ext
 
-*A basic tool for warning you about things you're checking in.*
+*Custom extensions for day-to-day git usage*
+
+## Background
+
+This project was originally known as `check-changes`, and was built to do some basic sanity checking of current changes (or changes on a branch) before pushing code. I came up with some other git-related conveniences I'd like to have, so it seemed natural to package all of them together into a suite of convenience tools.
+
+These extensions are built by and for someone doing pretty typical enterprise development on git repositories. Many of the functions are going to assume a shared central repository as a source of truth, and will operate accordingly. Don't @ me bro.
 
 ## Basic outline
 
@@ -37,3 +43,7 @@ To build the project, simply run `make` in the project's root directory to build
 - Use this a bit to shake down bugs.
 - Colorize CLI output (when stdout is not a pipe).
 - Make keyword searching configurable so people can set their own custom keywords.
+- Rejigger this into an executable with subcommands.
+- Add a better git branch listing
+- Add a smart branch create (start at main, auto-create a remote tracking branch)
+- Add a smart branch delete (check if already orphaned, confirm deletion, smart force-delete)
