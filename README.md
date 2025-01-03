@@ -43,6 +43,7 @@ To build the project, simply run `make` in the project's root directory to build
 - Use this a bit to shake down bugs.
 - Colorize CLI output (when stdout is not a pipe).
 - Make checked keyword searching configurable so people can set their own custom keywords.
+- make the diff parsing not choke on "\ No newline at end of file"
 - Rejigger this into an executable with subcommands.
 - Add a smart branch create (start at main, auto-create a remote tracking branch)
 - Add a smart branch delete (check if already orphaned, confirm deletion, smart force-delete)
