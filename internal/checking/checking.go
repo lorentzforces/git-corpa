@@ -272,13 +272,13 @@ func parseDiffLines(rawLines []string) []diffFile {
 			newFileLineNumber++
 			continue
 		}
-		if firstChar == '-' {
+		if firstChar == '-' || firstChar == '\\' {
 			continue
 		}
 		platform.Assert(
 			firstChar == '+',
 			fmt.Sprintf(
-				"Diff file content line did not start with one of [ -+], last file header: " +
+				"Diff file content line did not start with one of [ -+\\], last file header: " +
 					"\"%s\" offending line is:\n\"%s\"",
 				fileName, rawLine,
 			),
